@@ -1,0 +1,14 @@
+{
+  "name": "llm-eval-harness",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Evaluation harness for a RAG assistant over IoT device documentation",
+  "scripts": {
+    "eval": "promptfoo eval",
+    "eval:ci": "promptfoo eval --no-cache --output results/latest.json",
+    "view": "promptfoo view"
+  },
+  "devDependencies": {
+    "promptfoo": "^0.118.0"
+  }
+}

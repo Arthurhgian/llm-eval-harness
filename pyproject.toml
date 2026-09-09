@@ -1,0 +1,14 @@
+[project]
+name = "llm-eval-harness"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = [
+    "deepeval>=3.0",
+    "ragas>=0.2",
+    "pytest>=8.0",
+    "python-dotenv>=1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

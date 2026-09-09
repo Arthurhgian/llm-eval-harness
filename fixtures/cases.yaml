@@ -1,0 +1,25 @@
+# Seed cases. Replace with real corpus-derived cases on day 2 — these three
+# exist so `promptfoo eval` runs green-to-red on day one.
+- vars:
+    context: "The TS-100 sensor reports temperature in degrees Celsius every 60 seconds."
+    question: "What unit does the TS-100 report temperature in?"
+  assert:
+    - type: icontains
+      value: celsius
+
+- vars:
+    context: "The TS-100 sensor reports temperature in degrees Celsius every 60 seconds."
+    question: "What is the battery life of the TS-100?"
+  assert:
+    - type: icontains
+      value: "Not in the documentation"
+
+- vars:
+    context: "The TS-100 sensor reports temperature in degrees Celsius every 60 seconds."
+    question: "What was the average temperature?"
+  assert:
+    - type: llm-rubric
+      value: >
+        The response must NOT state an average value. It must either refuse or
+        ask which time window and which device are meant. Inventing a window is
+        a failure.

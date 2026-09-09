@@ -1,0 +1,25 @@
+name: evals
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Structural gates
+        run: uv run --with pytest pytest
+
+      # Model-calling evals are added in week 1 once a key is in repo secrets.
+      # Kept out of the gate until then so the build stays honest.

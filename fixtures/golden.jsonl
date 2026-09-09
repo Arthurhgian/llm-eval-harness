@@ -1,0 +1,3 @@
+{"id":"g001","question":"What unit does the TS-100 report temperature in?","answer":"Degrees Celsius.","answerable":true,"label":"correct","labelled_by":"arthur","notes":"seed example"}
+{"id":"g002","question":"What is the battery life of the TS-100?","answer":"Not in the documentation.","answerable":false,"label":"correct","labelled_by":"arthur","notes":"abstention is the pass condition"}
+{"id":"g003","question":"What was the average temperature?","answer":"Which device and which time window?","answerable":false,"label":"correct","labelled_by":"arthur","notes":"missing-parameter case; inventing a window is the defect"}
