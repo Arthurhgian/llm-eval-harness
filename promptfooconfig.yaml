@@ -4,18 +4,25 @@ description: RAG assistant over device documentation
 prompts:
   - file://prompts/assistant.txt
 
+# Model IDs are PINNED to dated versions on purpose. A floating alias means
+# the provider can change the system under test without a commit in this
+# repo -- which is a regression you would find out about from a user.
 providers:
-  - id: anthropic:messages:claude-haiku-4-5
+  - id: anthropic:messages:claude-haiku-4-5-20251001
     config:
       temperature: 0
-  - id: openai:gpt-5-mini
+  - id: anthropic:messages:claude-sonnet-5
     config:
       temperature: 0
+  # Add a second vendor once a key exists; cross-vendor disagreement is one
+  # of the cheapest signals that a prompt is underspecified.
+  # - id: openai:gpt-5-mini
 
 defaultTest:
   options:
-    # Judge model is pinned separately from the models under test, on purpose.
-    provider: anthropic:messages:claude-haiku-4-5
+    # The judge is pinned separately from the models under test, so a change
+    # in judge behaviour can never be mistaken for a change in quality.
+    provider: anthropic:messages:claude-haiku-4-5-20251001
   assert:
     - type: latency
       threshold: 8000
