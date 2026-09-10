@@ -4,16 +4,22 @@ description: RAG assistant over device documentation
 prompts:
   - file://prompts/assistant.txt
 
-# Model IDs are PINNED to dated versions on purpose. A floating alias means
-# the provider can change the system under test without a commit in this
-# repo -- which is a regression you would find out about from a user.
+# Model IDs are PINNED to dated versions where the provider offers one. A
+# floating alias means the provider can change the system under test without
+# a commit in this repo -- which is a regression you would hear about from a
+# user rather than from CI.
 providers:
   - id: anthropic:messages:claude-haiku-4-5-20251001
     config:
       temperature: 0
+
+  # NOTE (finding 001): Sonnet 5 rejects `temperature` outright --
+  # 400 invalid_request_error, "`temperature` is deprecated for this model".
+  # So this model cannot be pinned to greedy decoding the way Haiku can.
+  # Consequence: repeat-N variance measurement is mandatory for it, not
+  # optional. See docs/method.md.
   - id: anthropic:messages:claude-sonnet-5
-    config:
-      temperature: 0
+
   # Add a second vendor once a key exists; cross-vendor disagreement is one
   # of the cheapest signals that a prompt is underspecified.
   # - id: openai:gpt-5-mini
@@ -26,7 +32,11 @@ defaultTest:
   assert:
     - type: latency
       threshold: 8000
-    - type: cost
-      threshold: 0.01
+    # NOTE (finding 002): the built-in `cost` assertion is NOT usable here.
+    # promptfoo 0.118.17's Anthropic price table stops at Claude 4.x, so cost
+    # is undefined for both models under test, and a per-provider `cost:`
+    # override cannot rescue it -- calculateCost() returns early when the
+    # model id is absent from the table, before it ever reads config.cost.
+    # Replaced by our own token-based cost gate in week 1. See docs/method.md.
 
 tests: file://fixtures/cases.yaml
