@@ -28,6 +28,21 @@ This governs every counter downstream, including rung 2's: pass, fail and
 error stay separate at every layer that reports them — per case, per model,
 and in whatever the CI gate reads.
 
+## Shared model config
+Client construction, the pinned model id, and the per-token prices live in
+`src/lib/model.ts`, imported by every rung script, instead of being retyped
+into each one. Copying was the other option, and it was cheap with only two
+files — but this repo already wrote up what copying costs as Finding 005
+(day 1): two facts, nothing enforcing they stay in sync, found because it
+happened once by accident. Writing it a second time on purpose, in the file
+next to the one that names it as a defect, isn't defensible without saying
+why not.
+
+This is not Finding 005's Action item. Rung 11 still owes a price table keyed
+by model id that fails loudly on an unknown model; `src/lib/model.ts` only
+removes the duplication — an unknown or changed model id here still silently
+keeps the old price rather than erroring. One problem fixed, one still open.
+
 ## Findings from day 0 (9 Sep 2026)
 
 Three cases, two models — six rows when both are in the matrix. Day 0 took

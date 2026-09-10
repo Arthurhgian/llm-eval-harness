@@ -1,16 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-// The SDK's own README notes that `apiKey` "is the default and can be
-// omitted" — the client picks up ANTHROPIC_API_KEY from the environment on
-// its own, so there's nothing to pass explicitly here.
-const client = new Anthropic();
-
-// USD per million tokens for claude-haiku-4-5-20251001.
-// Source: https://platform.claude.com/docs/en/pricing.md — checked 10 Sep 2026.
-// Update these if the `model` below changes — pricing is per-model, not
-// something the SDK reports (see Finding 005, docs/method.md).
-const INPUT_PRICE_PER_MTOK = 1.0;
-const OUTPUT_PRICE_PER_MTOK = 5.0;
+import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from './lib/model';
 
 console.log('ANTHROPIC_API_KEY length:', (process.env['ANTHROPIC_API_KEY'] ?? '').length);
 
@@ -18,7 +6,7 @@ async function main() {
   const start = Date.now();
 
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: MODEL_ID,
     max_tokens: 1024,
     messages: [
       {
