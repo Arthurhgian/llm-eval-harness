@@ -5,8 +5,10 @@ import Anthropic from '@anthropic-ai/sdk';
 // its own, so there's nothing to pass explicitly here.
 const client = new Anthropic();
 
-// USD per million tokens for claude-haiku-4-5-20251001. Update these if the
-// `model` below changes — pricing is per-model, not something the SDK reports.
+// USD per million tokens for claude-haiku-4-5-20251001.
+// Source: https://platform.claude.com/docs/en/pricing.md — checked 10 Sep 2026.
+// Update these if the `model` below changes — pricing is per-model, not
+// something the SDK reports (see Finding 005, docs/method.md).
 const INPUT_PRICE_PER_MTOK = 1.0;
 const OUTPUT_PRICE_PER_MTOK = 5.0;
 
