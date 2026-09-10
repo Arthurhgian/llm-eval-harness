@@ -9,6 +9,12 @@
     "view": "promptfoo view"
   },
   "devDependencies": {
-    "promptfoo": "^0.118.0"
+    "@types/node": "^22.20.2",
+    "promptfoo": "^0.118.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0"
   }
 }
