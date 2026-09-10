@@ -59,3 +59,48 @@ assertion that cannot evaluate must fail loudly, never pass quietly.
 Action: cost is gated by our own assertion computed from reported token usage
 and a price table in this repo (week 1). The promptfoo precedence issue is a
 candidate for the week 11 upstream pull request.
+
+### Finding 003 — the tool cannot call the model, and the fix was not in my config
+
+Correction to finding 001. Removing `temperature` from the provider config
+changed nothing: the second run produced the identical 400 on all three
+Sonnet 5 rows.
+
+`node_modules/promptfoo/dist/src/providers/anthropic/messages.js`, lines
+85-87, builds the request body as:
+
+```js
+temperature: config.thinking || thinking
+  ? config.temperature
+  : config.temperature || getEnvFloat('ANTHROPIC_TEMPERATURE', 0),
+```
+
+With `thinking` unset — the default — the parameter is **always** sent, and
+falls back to `0` when the user did not ask for it. Sonnet 5 rejects
+`temperature` entirely, so promptfoo 0.118.17 cannot call that model at all.
+The only escape is the `thinking` branch, where `config.temperature` is
+`undefined` and `JSON.stringify` drops the key — but extended thinking is a
+different system under test (different cost, latency and output shape), so it
+is a workaround, not a neutral fix.
+
+Two things worth keeping from this:
+
+**A default injected on your behalf is still your request.** I "removed"
+temperature and the request still carried it. The parameter I could see in my
+config was not the parameter being sent, and only reading the provider source
+settled it. When a request fails on something you believe you did not send,
+verify the wire, not the config file.
+
+**Do not average errors with failures.** The run reported 3 successes,
+0 failures, 3 errors — which surfaced as "50% pass rate". That number is
+meaningless here: nothing the models produced was wrong. Every Haiku answer
+passed every assertion, including the missing-parameter rubric. The other half
+never reached a model. A single pass-rate percentage that blends "the answer
+was wrong" with "the call never happened" hides exactly the distinction that
+tells you whether to talk to a prompt engineer or a platform engineer. Our own
+reporting keeps errors, failures and passes as three separate counts, always.
+
+Action: Sonnet 5 is parked, Haiku 4.5 carries the matrix, and the second model
+returns once this is patched locally or fixed upstream. Filed as the strongest
+candidate for the week 11 pull request — it is reproducible in four lines and
+it blocks every user of a current Anthropic model.
