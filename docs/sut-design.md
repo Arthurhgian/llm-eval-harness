@@ -72,21 +72,29 @@ implication. Two places this almost happened:
   cause. Holds as a near-miss under the rule in `docs/labelling-rules.md`
   (refusal first, clarifying question after, passes) — n=1 so far, same
   flake-budget caveat as everywhere else in this repo.
-- D2 hasn't been written yet, but the natural sentence for a data-lifecycle
-  doc is "telemetry is append-only" or "immutable once ingested" — which
-  answers Q6 (can't edit; only delete) by implication, the same way. D2's
-  brief, decided here before it's drafted: document how removal works, say
-  nothing about whether editing is possible in either direction. If mutability
-  ever needs documenting for its own sake, Q6 stops being usable and a
-  replacement near-miss has to be found — don't let it happen silently.
+- D2's brief was decided before it was drafted: document how removal works,
+  say nothing about whether editing is possible in either direction — the
+  natural sentence for a data-lifecycle doc is "telemetry is append-only" or
+  "immutable once ingested," which answers Q6 (can't edit; only delete) by
+  implication. D2 as written keeps to the brief: removal mechanics only, no
+  sentence framing deletion as the only available mutation. Checked, not
+  assumed, **11 Sep 2026**, with `scripts/probe-q6.ts`: `claude-haiku-4-5-20251001`
+  answered "Not in the documentation," accurately described what the page
+  does cover (retention, removal), and never asserted that editing is
+  unsupported — a fact about document coverage, not a claim about the
+  platform. Holds as a near-miss under the same rule as Q2 — n=1, same
+  caveat. If mutability ever needs documenting for its own sake, Q6 stops
+  being usable and a replacement near-miss has to be found — don't let it
+  happen silently.
 
 ## 3. Topic scheme
 
 Names only — shape, payloads, and examples live in D1 now that it's
 written, not here. As of 11 Sep 2026 this section is a name index, kept for
-the other design sections (below) and future D2/D5 drafting to point at
-before those documents exist; once every document referencing these names
-is written, this section can go, and the names live in the docs instead.
+future D3/D4/D5 drafting to point at before those documents exist (D2
+already points at D1 by title rather than repeating this); once every
+document referencing these names is written, this section can go, and the
+names live in the docs instead.
 
 **Uplink:** `qualimetrics/{device_eui}/up/{port}`, `.../up/{port}/decoded`
 **Downlink:** `qualimetrics/{device_eui}/down/{port}`, `.../down/{port}/ack`
@@ -104,7 +112,7 @@ never a window where the id is data pointing at nothing:
 | Doc | Title | File | Scope |
 |---|---|---|---|
 | D1 | MQTT Topics & Messaging | `corpus/d1-mqtt-topics-and-messaging.md` | Uplink/downlink topic format, payload decoding, connection status, acknowledgment. Uplink troubleshooting ("no payload") lives here — decoded-value troubleshooting deliberately does not. |
-| D2 | Data Lifecycle & Retention | *unwritten* | Retention windows, removing received data, storage/partition limits. Editing/overwriting received data deliberately does not appear. |
+| D2 | Data Lifecycle & Retention | `corpus/d2-data-lifecycle-and-retention.md` | Retention windows and register/bucket capacity limits (both plan-tier tables, no universal number), removing received data. Editing/overwriting received data deliberately does not appear. |
 | D3 | Device Onboarding & Connectivity | *unwritten* | EUI registration, firmware updates, connectors, multi-network support, offline/status detection. |
 | D4 | API Reference | *unwritten* | Endpoints, status codes, the several distinct timeout concepts (join, downlink ack, HTTP), data export. |
 | D5 | Platform Architecture & Scope | *unwritten* | High-level internal architecture and an explicit statement of what Qualimetrics does not cover (customer-owned infrastructure). |
@@ -124,13 +132,13 @@ there:
 | 3 | What's the topic format for downlink? | Answerable | D1 | Full answer — downlink topic format |
 | 4 | What's the message left when the connect is disconnected? | Answerable (recategorised — see note below) | D1 | Full answer — the Last-Will section: `{"status": "offline", "reason": "lwt"}`, distinguished from a graceful disconnect by `reason` |
 | 5 | How do I tell if the device acknowledged? | Answerable | D1 | Full answer — the ack topic |
-| 6 | How can the data received be edited/overwritten? | Near-miss ★ (undocumented sibling of Q7) | D2 | Sibling only — removal mechanics, nothing on editing (see note above) |
-| 7 | How can the data can be removed? | Answerable ★ | D2 | Full answer — removal mechanics |
+| 6 | How can the data received be edited/overwritten? | Near-miss ★ (undocumented sibling of Q7) | D2 | Sibling only — removal mechanics, nothing on editing (see note above); probed, holds |
+| 7 | How can the data can be removed? | Answerable ★ | D2 | Full answer — the `DELETE /devices/{device_eui}/data` mechanics |
 | 8 | How the uplinks are distributed on a queue? | Out of scope — internal ingestion mechanics, not documented for customers | D5 | High-level architecture mention only, no distribution detail |
 | 9 | Whats is the timeout for receiving requests? | Underspecified — the docs name three different timeouts (join, downlink ack, HTTP); "requests" alone doesn't pick one | D4 | Names three distinct timeouts, none uniquely matching "requests" |
 | 10 | What the device should be if it's offline or disconnected? | Depends on the reader — offline detection depends on the device's configured heartbeat/uplink interval | D3 | Full answer, conditioned on per-device heartbeat config |
-| 11 | What's the retention on raw data? | Depends on the reader — retention window varies by plan | D2 | Full answer, conditioned on plan |
-| 12 | What's the limitation(of data registers) for the bucket/database partition? | Depends on the reader — partition limits vary by plan | D2 | Full answer, conditioned on plan |
+| 11 | What's the retention on raw data? | Depends on the reader — retention window varies by plan | D2 | Full answer — the plan-tier table (Starter/Growth/Enterprise), no single number stated |
+| 12 | What's the limitation(of data registers) for the bucket/database partition? | Depends on the reader — register-per-bucket limit varies by plan | D2 | Full answer — same table; "register," "bucket," "partition" are now defined terms (see note below), not the question borrowing vocabulary the corpus doesn't have |
 | 13 | How the real devices can be registered(EUI) into the platform? | Answerable | D3 | Full answer — EUI registration flow |
 | 14 | How the devices can receive the firmwares updates? | Answerable | D3 | Full answer — firmware update flow |
 | 15 | What are the client's MQTT broker limitations for the device's communication? | Out of scope — a client's own broker is their infrastructure, not Qualimetrics' | D5 | Explicit boundary statement: customer-owned infrastructure is out of scope |
@@ -158,6 +166,26 @@ have made D1 worse to keep Q4's category intact. Category lost, document
 kept — that was the right trade. This is the drift the single-source-of-truth
 rule in `method.md` exists to catch: this file is now the corrected record,
 not the original design intent.
+
+**11 Sep 2026 — D2 adopted "bucket," "register," and "partition" as defined
+terms.** Q12's wording ("data registers," "bucket/database partition")
+doesn't match anything in D1 — it's vocabulary carried over from a real
+platform, not derived from this corpus. Left undefined, Q12 would degrade
+into accidentally-out-of-scope (nothing in the corpus uses those words) as
+opposed to the intended depends-on-reader. D2 defines them: one bucket per
+device, telemetry stored as data registers, buckets partitioned
+automatically and not user-configurable. Q11 and Q12 are both answered from
+one plan-tier table (Starter/Growth/Enterprise) rather than a single number
+— a flat "retention is 90 days" sentence would have collapsed Q11 into
+answerable exactly the way Q4 collapsed yesterday, so every number in that
+table is plan-conditioned on purpose, with no plan-agnostic figure stated
+anywhere in D2.
+
+**Forward note for rung 6:** Q11 and Q12 are both plan-conditioned — same
+mechanism (which tier the account is on), tested twice. Growing to 50 should
+add depends-on-reader cases that branch on something other than plan:
+device model, account role, operator. Two cases proving the same branch
+isn't two data points on depends-on-reader, it's one, asked twice.
 
 These 20 are a seed, not the golden set. Rung 6 grows this to 50 — more
 per-category coverage, and likely more near-miss pairs once D1–D5 exist and

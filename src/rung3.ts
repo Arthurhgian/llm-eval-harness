@@ -4,7 +4,8 @@ import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from '.
 // ---------------------------------------------------------------------------
 // Explain-back, written while building this, not after.
 //
-// Walking the five cases from rung2 before writing assertions for them:
+// Walking the eight cases before writing assertions for them (five from
+// rung2, plus q07/q12/q06 added once D2 existed to check them against):
 //
 // q03 (answerable)       — deterministic. D1 states the downlink topic
 //                          format as literal text; a `contains` check on
@@ -20,10 +21,31 @@ import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from '.
 //                          case is where rung 7's judge earns its place —
 //                          found in this repo's own labelling rule, not
 //                          invented for this rung.
-// q11 (depends-on-reader) — skipped, not undecidable. Its sourceDoc (D2)
-//                          doesn't exist yet, so there's no real content to
-//                          check a response against, and that's known
-//                          before any call is made — see "skipped" below.
+// q07 (answerable)       — deterministic, same shape as q03. D2 states the
+//                          removal endpoint as literal text.
+// q06 (near-miss)        — half deterministic, same shape as q02 — the
+//                          second near-miss, checked against D2 with
+//                          scripts/probe-q6.ts before being trusted.
+// q11 (depends-on-reader) — half deterministic, same shape as q02/q06.
+//                          `contains "your plan"` checks that the response
+//                          names what the answer depends on, which the
+//                          question text does not contain. It cannot catch
+//                          the actual failure mode this case exists to arm
+//                          against — a response that picks one tier and
+//                          states it flat while still mentioning "your
+//                          plan" somewhere — because that's a judgment
+//                          about content, not presence. Deferred, not
+//                          caught, same as q02/q06's speculative-cause
+//                          clause.
+// q12 (depends-on-reader) — half deterministic, same table and same gap as
+//                          q11. Two presence checks (`contains "your
+//                          plan"`, `contains "100,000"` — the Starter
+//                          tier's real number, which the question's own
+//                          "data registers" wording does not contain)
+//                          confirm the response pulled real, plan-tiered
+//                          content instead of echoing the question. Neither
+//                          check can confirm the tiers were used correctly
+//                          rather than decoratively — same deferral as q11.
 // q09 (underspecified)   — undecidable by category, not by missing corpus.
 //                          The correct behaviour is a clarifying question,
 //                          and unlike near-miss's mandated exact phrase,
@@ -33,16 +55,20 @@ import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from '.
 //                          the right ambiguity." This is the one case no
 //                          deterministic assertion can ever judge, full
 //                          stop — confirmed, not assumed.
-// q15 (out-of-scope)      — skipped, same shape as q11 (sourceDoc D5
-//                          unwritten). Arguably testable sooner than q11,
-//                          since "the client's own broker" is out of scope
-//                          regardless of which document gets retrieved —
-//                          skipped anyway for consistency rather than
-//                          special-cased; revisit once D5 exists.
+// q15 (out-of-scope)      — skipped, sourceDoc D5 unwritten. Arguably
+//                          testable sooner than q11/q12 were, since "the
+//                          client's own broker" is out of scope regardless
+//                          of which document gets retrieved — skipped
+//                          anyway for consistency rather than special-cased;
+//                          revisit once D5 exists.
 //
-// Two real, working deterministic cases (q03, q02); two skipped for want of
-// a document to check against (q11, q15); one that no deterministic check
-// can ever honestly judge (q09), kept because it's rung 7's reason to exist.
+// Two cases fully deterministic (q03, q07 — a literal fact with nothing
+// deferred); four half-deterministic (q02, q06, q11, q12 — presence
+// checkable, correctness is not, and each says what's deferred); one
+// skipped for want of a document (q15); one that no deterministic check
+// can ever honestly judge (q09), kept because it's rung 7's reason to
+// exist. Four cases needing a judge, not two — this is the list rung 7
+// reads, so it says so here, not just in each case's own comment.
 //
 // Two design decisions made after the first version of this file, not
 // before, because the first version is what exposed the need for them:
@@ -180,6 +206,7 @@ interface Case {
 }
 
 const D1 = readFileSync('corpus/d1-mqtt-topics-and-messaging.md', 'utf-8');
+const D2 = readFileSync('corpus/d2-data-lifecycle-and-retention.md', 'utf-8');
 const ASSISTANT_PROMPT = readFileSync('prompts/assistant.txt', 'utf-8');
 
 function buildPrompt(context: string, question: string): string {
@@ -208,10 +235,50 @@ const CASES: Case[] = [
     expected: [{ type: 'contains', value: 'Not in the documentation.', caseInsensitive: false }],
   },
   {
+    id: 'q07',
+    input: 'How can the data can be removed?',
+    context: D2,
+    expected: [{ type: 'contains', value: 'DELETE /devices/{device_eui}/data' }],
+  },
+  {
+    id: 'q06',
+    input: 'How can the data received be edited/overwritten?',
+    context: D2,
+    // Deterministic half only, same shape and same reason as q02 — see
+    // docs/labelling-rules.md. Checked with scripts/probe-q6.ts before this
+    // assertion was trusted, not just before D2 was.
+    expected: [{ type: 'contains', value: 'Not in the documentation.', caseInsensitive: false }],
+  },
+  {
     id: 'q11',
     input: "What's the retention on raw data?",
-    expected: [],
-    skipReason: 'sourceDoc D2 is unwritten (docs/sut-design.md §4)',
+    context: D2,
+    // "your plan", not bare "plan" — "explanation" contains "plan" as a
+    // substring, so the bare word passes on any hedge that happens to use
+    // the word "explanation" without ever naming what the answer actually
+    // depends on. Still only presence, not correctness: a response stating
+    // one tier's figure flat still says "your plan" if it explains why it
+    // picked that tier, and this can't catch "the answer picked one tier
+    // and stated it as the only one" — that clause is deferred, same shape
+    // as q02/q06's deferred clause, not caught here. See the header.
+    expected: [{ type: 'contains', value: 'your plan' }],
+  },
+  {
+    id: 'q12',
+    input: "What's the limitation(of data registers) for the bucket/database partition?",
+    context: D2,
+    // NOT `contains "register"` — the question text itself says "data
+    // registers", so the model echoes that word in any response, right or
+    // wrong, and the check could never fail. "100,000" is the Starter
+    // tier's actual number from D2's table, which the question does not
+    // contain — earning this means the answer actually pulled a real
+    // number from the doc, not just echoed the question's own vocabulary
+    // back. Same deferred-correctness caveat as q11: presence, not
+    // "used the tiers correctly."
+    expected: [
+      { type: 'contains', value: 'your plan' },
+      { type: 'contains', value: '100,000' },
+    ],
   },
   {
     id: 'q09',
@@ -231,7 +298,7 @@ const CASES: Case[] = [
 // ---- json_field / exact self-test ----------------------------------------
 //
 // Neither type has a real case today. json_field is the one the rung
-// explicitly warns against faking: none of the five questions has a reason
+// explicitly warns against faking: none of the eight questions has a reason
 // to demand JSON output, so none gets one. A real case earns a place once
 // something in the corpus genuinely specifies a machine-readable response
 // shape — e.g. "return the status codes as JSON" against D4, once it
@@ -265,6 +332,19 @@ function selfTest() {
     { type: 'exact', value: 'yes' },
   ]);
 
+  // Falsifiability check for q11/q12's shape, prompted by a review that
+  // caught `contains "register"` passing on any input because q12's own
+  // question text contains "register" — a check that echoes the question
+  // can never fail. q12's real assertions must fail on a response that
+  // hedges without ever naming the plan or a real number from the table.
+  const q12StyleOnGenericNonAnswer = evaluateCase(
+    "I don't have that information — please contact support for your account's specific limits.",
+    [
+      { type: 'contains', value: 'your plan' },
+      { type: 'contains', value: '100,000' },
+    ],
+  );
+
   console.log('--- self-test: exact, json_field, precedence ---');
   console.log('exact, matching text       ->', exactPass.verdict, exactPass.verdict === 'pass' ? 'OK' : 'BROKEN');
   console.log('exact, extra text          ->', exactFail.verdict, exactFail.verdict === 'fail' ? 'OK' : 'BROKEN');
@@ -284,6 +364,11 @@ function selfTest() {
     'unjudged listed before fail ->',
     unjudgedThenFail.verdict,
     unjudgedThenFail.verdict === 'unjudged' ? 'OK' : 'BROKEN',
+  );
+  console.log(
+    'q12-style check on a generic non-answer ->',
+    q12StyleOnGenericNonAnswer.verdict,
+    q12StyleOnGenericNonAnswer.verdict === 'failed' ? 'OK' : 'BROKEN',
   );
   console.log('');
 }
