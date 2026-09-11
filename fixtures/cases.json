@@ -1,0 +1,136 @@
+[
+  {
+    "id": "q03",
+    "category": "Answerable",
+    "sourceDoc": "D1",
+    "input": "What's the topic format for downlink?",
+    "expected": [
+      { "type": "contains", "value": "qualimetrics/{device_eui}/down/{port}", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q02",
+    "category": "Near-miss",
+    "sourceDoc": "D1",
+    "input": "Why is my uplink arriving with no decoded payload value?",
+    "expected": [
+      { "type": "contains", "value": "Not in the documentation.", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q07",
+    "category": "Answerable",
+    "sourceDoc": "D2",
+    "input": "How can the data can be removed?",
+    "expected": [
+      { "type": "contains", "value": "DELETE /devices/{device_eui}/data" }
+    ]
+  },
+  {
+    "id": "q06",
+    "category": "Near-miss",
+    "sourceDoc": "D2",
+    "input": "How can the data received be edited/overwritten?",
+    "expected": [
+      { "type": "contains", "value": "Not in the documentation.", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q11",
+    "category": "Depends on the reader",
+    "sourceDoc": "D2",
+    "input": "What's the retention on raw data?",
+    "expected": [
+      { "type": "contains", "value": "your plan" }
+    ]
+  },
+  {
+    "id": "q12",
+    "category": "Depends on the reader",
+    "sourceDoc": "D2",
+    "input": "What's the limitation(of data registers) for the bucket/database partition?",
+    "expected": [
+      { "type": "contains", "value": "your plan" },
+      { "type": "contains", "value": "100,000" }
+    ]
+  },
+  {
+    "id": "q08",
+    "category": "Near-miss",
+    "sourceDoc": "D5",
+    "input": "How the uplinks are distributed on a queue?",
+    "expected": [
+      { "type": "contains", "value": "Not in the documentation.", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q09",
+    "category": "Underspecified",
+    "sourceDoc": "D4",
+    "input": "Whats is the timeout for receiving requests?",
+    "expected": [],
+    "skipReason": "no deterministic check exists for \"asked an appropriate clarifying question\" — no fixed phrase is required, unlike near-miss's refusal string"
+  },
+  {
+    "id": "q15",
+    "category": "Out of scope",
+    "sourceDoc": "D5",
+    "input": "What are the client's MQTT broker limitations for the device's communication?",
+    "expected": [
+      { "type": "contains", "value": "Not in the documentation.", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q16",
+    "category": "Out of scope",
+    "sourceDoc": "D5",
+    "input": "How the client's specific middleware can be integrated to the device and application?",
+    "expected": [
+      { "type": "contains", "value": "Not in the documentation.", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q13",
+    "category": "Answerable",
+    "sourceDoc": "D3",
+    "input": "How the real devices can be registered(EUI) into the platform?",
+    "expected": [
+      { "type": "contains", "value": "POST /devices", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q14",
+    "category": "Answerable",
+    "sourceDoc": "D3",
+    "input": "How the devices can receive the firmwares updates?",
+    "expected": [
+      { "type": "contains", "value": "POST /devices/{device_eui}/firmware", "caseInsensitive": false }
+    ]
+  },
+  {
+    "id": "q10",
+    "category": "Depends on the reader",
+    "sourceDoc": "D3",
+    "input": "What the device should be if it's offline or disconnected?",
+    "expected": [],
+    "skipReason": "question wording is ambiguous (\"should be\" reads as status-value vs. prescribed-action), confirmed by A/B, not assumed from one sample: original wording 1/14 answered descriptively (10/10 refused at n=10, after 1/4 at n=4); reworded (\"What status does the platform show for an offline device?\") 14/14. Fisher's exact on the pooled result: p ~ 7.5e-7. D3 is correct; the fix is rewording at rung 6, not a deterministic check averaging over the question's own ambiguity. See docs/sut-design.md, dated note."
+  },
+  {
+    "id": "q18",
+    "category": "Answerable",
+    "sourceDoc": "D3",
+    "input": "How can I connect devices with different networks",
+    "expected": [
+      { "type": "contains", "value": "rejoin" }
+    ]
+  },
+  {
+    "id": "q19",
+    "category": "Answerable",
+    "sourceDoc": "D3",
+    "input": "How can I set up a specific connector to device's creation",
+    "expected": [
+      { "type": "contains", "value": "preset" }
+    ]
+  }
+]

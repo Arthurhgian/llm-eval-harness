@@ -107,7 +107,18 @@ Full shape: D1.
 The `Doc` id (D1–D5) is what `sourceDoc` will carry on every case from
 rung 4 onward — it has to resolve to exactly one file, permanently. Filename
 is picked at the same time the document is written, not after, so there's
-never a window where the id is data pointing at nothing:
+never a window where the id is data pointing at nothing.
+
+**11 Sep 2026 — the id-to-file mapping is now real code, not just this
+table:** `src/lib/docs.ts` holds one map, D1/D2/D3/D5 to their paths, with
+`DocId` typed as all five so a case can legally *name* D4 without the map
+having to pretend it exists. Decided now, for the state that arrives the
+day a case actually names D4: `loadDoc()` throws a dedicated
+`DocNotWrittenError`, not a bare Node file-not-found, so a case runner can
+catch specifically "not written yet" and skip — the same `skipped`
+treatment already used for D2/D3/D5 before they existed — without also
+swallowing a genuinely broken path (a typo in the map, a moved file),
+which stays an uncaught crash because it's a bug, not a known gap.
 
 | Doc | Title | File | Scope |
 |---|---|---|---|
