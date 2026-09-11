@@ -113,13 +113,15 @@ never a window where the id is data pointing at nothing:
 |---|---|---|---|
 | D1 | MQTT Topics & Messaging | `corpus/d1-mqtt-topics-and-messaging.md` | Uplink/downlink topic format, payload decoding, connection status, acknowledgment. Uplink troubleshooting ("no payload") lives here — decoded-value troubleshooting deliberately does not. |
 | D2 | Data Lifecycle & Retention | `corpus/d2-data-lifecycle-and-retention.md` | Retention windows and register/bucket capacity limits (both plan-tier tables, no universal number), removing received data. Editing/overwriting received data deliberately does not appear. |
-| D3 | Device Onboarding & Connectivity | *unwritten* | EUI registration, firmware updates, connectors, multi-network support, offline/status detection. |
+| D3 | Device Onboarding & Connectivity | `corpus/d3-device-onboarding-and-connectivity.md` | EUI registration, firmware updates, connectors, multi-network support, offline/status detection (branches on per-device reporting interval, not plan). |
 | D4 | API Reference | *unwritten* | Endpoints, status codes, the several distinct timeout concepts (join, downlink ack, HTTP), data export. |
-| D5 | Platform Architecture & Scope | *unwritten* | High-level internal architecture and an explicit statement of what Qualimetrics does not cover (customer-owned infrastructure). |
+| D5 | Platform Architecture & Scope | `corpus/d5-platform-architecture-and-scope.md` | The ingestion pipeline at a high level (queue, validate, decode, store, publish — no distribution detail), and an explicit statement of what Qualimetrics does not cover (customer-owned infrastructure). |
 
 ## 5. The 20 questions
 
 ★ marks the two near-miss pairs — same mark, one documented half, one not.
+Q8 is a third near-miss, unpaired — no sibling question in this set asks
+the fact D5 does document (see note below).
 
 The "Doc" column names the document the question maps to, but that mapping
 means something different per category, so it's split from what's actually
@@ -134,21 +136,21 @@ there:
 | 5 | How do I tell if the device acknowledged? | Answerable | D1 | Full answer — the ack topic |
 | 6 | How can the data received be edited/overwritten? | Near-miss ★ (undocumented sibling of Q7) | D2 | Sibling only — removal mechanics, nothing on editing (see note above); probed, holds |
 | 7 | How can the data can be removed? | Answerable ★ | D2 | Full answer — the `DELETE /devices/{device_eui}/data` mechanics |
-| 8 | How the uplinks are distributed on a queue? | Out of scope — internal ingestion mechanics, not documented for customers | D5 | High-level architecture mention only, no distribution detail |
+| 8 | How the uplinks are distributed on a queue? | Near-miss (recategorised — see note below) | D5 | Sibling-shaped, not sibling-paired: D5 documents that frames are queued and the pipeline stages, not how work is distributed within that queue; probed, holds |
 | 9 | Whats is the timeout for receiving requests? | Underspecified — the docs name three different timeouts (join, downlink ack, HTTP); "requests" alone doesn't pick one | D4 | Names three distinct timeouts, none uniquely matching "requests" |
-| 10 | What the device should be if it's offline or disconnected? | Depends on the reader — offline detection depends on the device's configured heartbeat/uplink interval | D3 | Full answer, conditioned on per-device heartbeat config |
+| 10 | What the device should be if it's offline or disconnected? | Depends on the reader — status thresholds scale with the device's own configured reporting interval | D3 | Answer exists and is correct, but the question's own phrasing is ambiguous enough that no single deterministic check is trustworthy against it (see note below) |
 | 11 | What's the retention on raw data? | Depends on the reader — retention window varies by plan | D2 | Full answer — the plan-tier table (Starter/Growth/Enterprise), no single number stated |
 | 12 | What's the limitation(of data registers) for the bucket/database partition? | Depends on the reader — register-per-bucket limit varies by plan | D2 | Full answer — same table; "register," "bucket," "partition" are now defined terms (see note below), not the question borrowing vocabulary the corpus doesn't have |
-| 13 | How the real devices can be registered(EUI) into the platform? | Answerable | D3 | Full answer — EUI registration flow |
-| 14 | How the devices can receive the firmwares updates? | Answerable | D3 | Full answer — firmware update flow |
-| 15 | What are the client's MQTT broker limitations for the device's communication? | Out of scope — a client's own broker is their infrastructure, not Qualimetrics' | D5 | Explicit boundary statement: customer-owned infrastructure is out of scope |
-| 16 | How the client's specific middleware can be integrated to the device and application? | Out of scope — unnamed third-party middleware isn't documented | D5 | Same boundary statement as Q15 |
+| 13 | How the real devices can be registered(EUI) into the platform? | Answerable | D3 | Full answer — the `POST /devices` registration flow |
+| 14 | How the devices can receive the firmwares updates? | Answerable | D3 | Full answer — the firmware-over-the-air upload/scheduling flow (D3 never says "FUOTA" — matching its own wording, not a term the corpus doesn't have) |
+| 15 | What are the client's MQTT broker limitations for the device's communication? | Out of scope — a client's own broker is their infrastructure, not Qualimetrics' | D5 | Full boundary statement — refusal, then an accurate, sourced explanation of why (customer-owned infrastructure), not a bare "not documented" |
+| 16 | How the client's specific middleware can be integrated to the device and application? | Out of scope — unnamed third-party middleware isn't documented | D5 | Same boundary statement as Q15, same probed behaviour |
 | 17 | What are the main status code received by the API when fetching data(positive and negatives)? | Answerable | D4 | Full answer — status code table |
-| 18 | How can I connect devices with different networks | Answerable | D3 | Full answer — connector / multi-network support |
-| 19 | How can I set up a specific connector to device's creation | Answerable | D3 | Full answer — connector setup during device creation |
+| 18 | How can I connect devices with different networks | Answerable | D3 | Full answer — the `network` field, distinct mechanism from Q19 (see note below) |
+| 19 | How can I set up a specific connector to device's creation | Answerable | D3 | Full answer — connectors as decoder/settings presets, distinct mechanism from Q18 (see note below) |
 | 20 | How can the data received be manipulated via API to be used as data sheets and customizable analysis? | Underspecified — "data sheets" and "customizable analysis" aren't platform terms; needs a concrete export format or destination | D4 | Query/export endpoints described; not mapped to either named term |
 
-**Distribution:** 10 answerable, 2 near-miss, 3 out-of-scope, 3 depends-on-reader,
+**Distribution:** 10 answerable, 3 near-miss, 2 out-of-scope, 3 depends-on-reader,
 2 underspecified. Answerable is the largest bucket here; the design effort
 went into making sure the other ten each detect a specific, named failure
 mode instead of padding the count. (Not claiming this split matches real
@@ -180,6 +182,89 @@ one plan-tier table (Starter/Growth/Enterprise) rather than a single number
 answerable exactly the way Q4 collapsed yesterday, so every number in that
 table is plan-conditioned on purpose, with no plan-agnostic figure stated
 anywhere in D2.
+
+**11 Sep 2026 — Q8 was recategorised from out-of-scope to near-miss before
+D5 was drafted, not after.** The original reasoning ("internal ingestion
+mechanics, not documented for customers") assumed D5 would stay thin enough
+that nothing nearby existed. But D5 has to describe *something* about
+ingestion to be worth writing at all, and the moment it does — queued,
+validated, decoded, stored, published — that description sits right next to
+the fact Q8 actually asks about (how work is distributed within the queue),
+which is the definition of near-miss, not out-of-scope. Out-of-scope was
+never really the right category; it was the category available before the
+document existed to prove otherwise. Chosen deliberately over keeping D5
+too thin to answer: near-miss is the high-signal category (§2's own table)
+and this corpus started with only two. Checked, not assumed, with
+`scripts/probe-q8.ts`: `claude-haiku-4-5-20251001` answered "Not in the
+documentation," correctly named what D5 does say (frames are queued for
+processing) against what it doesn't (the distribution mechanism), and
+invented nothing. Holds as a near-miss under the same rule as Q2/Q6 — n=1,
+same caveat. Unpaired, unlike Q1/Q2 and Q6/Q7: no other question in this
+set asks the fact D5 documents, so there's no sibling to leave undocumented
+— the near-miss comes from D5's own content sitting next to its own gap,
+not from a sibling question's answer being withheld.
+
+**11 Sep 2026 — D3 decided two things before being drafted, not after.**
+
+*Q10's branch.* The forward note below (written before D3 existed) flagged
+that Q11/Q12 both branch on plan and asked for a different axis. D3's
+device-status section branches on each device's own *expected reporting
+interval*, set per device profile — a sensor expected every 60 seconds
+goes stale after 3 minutes, one expected daily doesn't go stale for three
+days. Plan never enters into it. This satisfies the forward note's ask for
+rung 6 one case early, deliberately, rather than by accident.
+
+*Q18 vs Q19.* Both read close enough on a skim to risk being one fact
+asked twice — the same critique accepted for Q11/Q12. Checked before
+writing: Q18 is the `network` field (which LoRaWAN network a device joins
+— Qualimetrics' shared network or, on Enterprise, a private one); Q19 is
+`connector` (a decoder-and-settings preset for a device model, chosen at
+creation). Two different fields, two different device-record properties,
+written in separate sections with no shared sentence between them. Neither
+depends on knowing the other to be answered.
+
+**11 Sep 2026 — Q10's phrasing turned out to be the finding, not D3's
+content — and the finding was checked, not assumed from four data points.**
+Q10 was designed to answer descriptively — status thresholds conditioned
+on a device's reporting interval — and D3 states that clearly. Probed
+anyway: 1 pass in 4 samples ("Not in the documentation" three times,
+reading "what the device *should be*" as asking for prescribed remediation
+rather than the status value). 1-of-4 on an identical prompt against an
+identical document is, on its own, exactly what plain run-to-run variance
+predicts — nothing in that number distinguishes "the question is
+ambiguous" from "the model is just noisy here." Writing the ambiguity
+explanation down at that point would have been inventing a cause for an
+observation that had at least two honest explanations, which is the
+confabulation this corpus's own near-miss cases exist to catch, committed
+in the design doc instead of by the model.
+
+The test that separates the two hypotheses: run the candidate rewording —
+"What status does the platform show for an offline device?" — the same
+number of times, against the same document. 4 pass in 4. That alone was
+still only suggestive: Fisher's exact test on the 1-of-4-vs-4-of-4 table
+gives p ≈ 0.14 — a real, large-looking gap, but n=4 per arm doesn't clear
+any conventional bar, and calling that result "decisive" was one word past
+what the data licensed, caught on review. Reran both arms at n=10 to get
+an answer instead of a hedge: **original wording, 0 of 10 answered
+descriptively (10 of 10 refused); reworded, 10 of 10.** Pooled across both
+rounds — original 1-of-14, reworded 14-of-14 — Fisher's exact gives
+p ≈ 7.5×10⁻⁷. *That* is decisive. Ambiguity, not noise, confirmed by a
+number that earns the word, not asserted from a shape that merely
+suggested it. Q10 stays depends-on-reader — D3 is correct and complete —
+and the *reworded* phrasing is the rung 6 fix (justified by evidence now,
+not a hunch); `rung3.ts` still skips the *original* wording, since that's
+the actual golden-set question and rewording it is rung 6's job, not
+rung 3's.
+
+This is also rung 5 arriving two rungs early by accident: a single case,
+run N times, landing on a pass rate strictly between 0 and 1 — original
+wording 1/14 (0.071), reworded 14/14 (1.0) — plus an account of what
+varies between runs and a real significance test on the result, which is
+rung 5's done-when condition plus the question rung 7 will ask about every
+agreement number it reports. Keep this data point rather than let it
+evaporate into "skipped": it's the first real evidence this repo has for
+what repeat-N actually looks like, and it should feed rung 5's design
+directly instead of being rediscovered there.
 
 **Forward note for rung 6:** Q11 and Q12 are both plan-conditioned — same
 mechanism (which tier the account is on), tested twice. Growing to 50 should

@@ -43,6 +43,25 @@ by model id that fails loudly on an unknown model; `src/lib/model.ts` only
 removes the duplication — an unknown or changed model id here still silently
 keeps the old price rather than erroring. One problem fixed, one still open.
 
+## Instruments get verified
+An ad hoc script that produces a number destined for a doc or a decision is
+an instrument, not throwaway code — the same falsifiability question built
+into `selfTest()` (`src/rung3.ts`: what response would make this check
+fail?) applies to it, not just to committed assertions.
+
+Found the hard way, 11 Sep 2026: a Q10 A/B classifier first checked whether
+the word "interval" appeared anywhere in the response, which scored the
+refused arm at 10/10 pass — because a refusal's own explanation of what
+*is* covered also says "interval." Caught only because the number
+contradicted an earlier result (1/4 on the same wording), not because the
+classifier itself was tested. That safety net doesn't scale: at rung 6,
+fifty cases mostly carry no prior result to contradict, so an
+undiscriminating check just produces a plausible number, and it gets
+written down. Test the instrument before trusting what it measures — and
+keep the instrument after citing its number (`scripts/probe-q10-ab.ts`),
+the same as `scripts/probe-q2.ts` — a script deleted after its output is
+quoted is a claim nobody can re-run.
+
 ## Findings from day 0 (9 Sep 2026)
 
 Three cases, two models — six rows when both are in the matrix. Day 0 took

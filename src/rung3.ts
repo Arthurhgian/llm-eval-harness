@@ -4,8 +4,9 @@ import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from '.
 // ---------------------------------------------------------------------------
 // Explain-back, written while building this, not after.
 //
-// Walking the eight cases before writing assertions for them (five from
-// rung2, plus q07/q12/q06 added once D2 existed to check them against):
+// Walking the cases before writing assertions for them (five from rung2,
+// q07/q12/q06 added once D2 existed, q08/q16 added and q15 unblocked once
+// D5 existed, q13/q14/q18/q19 added and q10 skipped once D3 existed):
 //
 // q03 (answerable)       — deterministic. D1 states the downlink topic
 //                          format as literal text; a `contains` check on
@@ -55,22 +56,88 @@ import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from '.
 //                          the right ambiguity." This is the one case no
 //                          deterministic assertion can ever judge, full
 //                          stop — confirmed, not assumed.
-// q15 (out-of-scope)      — skipped, sourceDoc D5 unwritten. Arguably
-//                          testable sooner than q11/q12 were, since "the
-//                          client's own broker" is out of scope regardless
-//                          of which document gets retrieved — skipped
-//                          anyway for consistency rather than special-cased;
-//                          revisit once D5 exists.
+// q08 (near-miss)        — half deterministic, same shape as q02/q06 —
+//                          recategorised from out-of-scope before D5 was
+//                          drafted (docs/sut-design.md, dated note): writing
+//                          a real ingestion-pipeline section put an
+//                          80%-relevant chunk next to the undocumented
+//                          distribution mechanism, which is near-miss by
+//                          definition. Checked with scripts/probe-q8.ts, not
+//                          assumed from the recategorisation alone.
+// q16 (out-of-scope)      — half deterministic, same code shape as
+//                          q02/q06/q08: the assertion checks for the refusal
+//                          and nothing else, so a speculative addition after
+//                          it would pass exactly the way it would on a
+//                          near-miss case — the check does not verify
+//                          "accurate, sourced reason," only "refused." The
+//                          real difference is what's at stake, not what's
+//                          checked: D5 has no adjacent technical content for
+//                          the model to confabulate FROM here (unlike q08's
+//                          ingestion-pipeline section), so the risk this
+//                          case is exposed to is closer to out-of-scope's
+//                          "Low" signal (§2's table) even though the code's
+//                          blind spot is identical to a near-miss case's.
+//                          Lower risk isn't zero risk, and it isn't checked
+//                          either way — worth not overclaiming past what
+//                          the assertion actually verifies.
+// q15 (out-of-scope)      — same shape and same reasoning as q16, now that
+//                          D5 exists — unblocked, not newly written.
+// q13 (answerable)        — deterministic, same shape as q03/q07: D3 states
+//                          the registration endpoint (`POST /devices`) as
+//                          literal text the question doesn't contain.
+// q14 (answerable)        — deterministic, same shape: D3 states the
+//                          firmware upload endpoint as literal text.
+// q10 (depends-on-reader) — skipped, and the reason is checked, not
+//                          assumed, at a sample size that actually earns the
+//                          word "confirmed". D3 answers this correctly and
+//                          completely (status thresholds scale with a
+//                          device's own reporting interval, not plan) — the
+//                          doc isn't the problem. Original wording scored
+//                          1-of-4 against the real doc on the first pass —
+//                          suggestive, not proof: Fisher's exact on 1-of-4
+//                          vs. the reworded candidate's 4-of-4 gives
+//                          p ~ 0.14, which doesn't clear a conventional bar,
+//                          and the first draft of this comment called that
+//                          gap "decisive" anyway — caught on review, one
+//                          word ahead of the evidence. Reran both arms at
+//                          n=10: original 0/10, reworded 10/10. Pooled
+//                          across both rounds — original 1/14, reworded
+//                          14/14 — Fisher's exact gives p ~ 7.5e-7. *That*
+//                          is decisive. Category stays depends-on-reader;
+//                          rung 3 still skips the *original* wording, since
+//                          that's the actual golden-set question and
+//                          swapping it is rung 6's job. Full numbers in
+//                          docs/sut-design.md, dated note — also rung 5's
+//                          done-when condition (one case, repeat-N, pass
+//                          rate strictly between 0 and 1, with a
+//                          significance test on the result — the same
+//                          question rung 7 will ask about every judge-vs-
+//                          human agreement number it reports), arrived two
+//                          rungs early; don't rediscover
+//                          it there, it's already recorded.
+// q18 (answerable)        — half deterministic. `contains "rejoin"` (not
+//                          "rejoins" — the model paraphrased D3's "rejoins"
+//                          as "will rejoin" in the probe run that decided
+//                          this value) confirms the response used the
+//                          `network`-field mechanism, which the question's
+//                          own "different networks" wording doesn't supply
+//                          on its own; doesn't confirm the network/connector
+//                          distinction was drawn correctly.
+// q19 (answerable)        — half deterministic. `contains "preset"` — not
+//                          `contains "connector"`, which the question
+//                          already contains and could never fail on, the
+//                          same trap q12's first draft fell into.
 //
-// Two cases fully deterministic (q03, q07 — a literal fact with nothing
-// deferred); four half-deterministic (q02, q06, q11, q12 — presence
-// checkable, correctness is not, and each says what's deferred); one
-// skipped for want of a document (q15); one that no deterministic check
-// can ever honestly judge (q09), kept because it's rung 7's reason to
-// exist. Four cases needing a judge, not two — this is the list rung 7
-// reads, so it says so here, not just in each case's own comment.
+// Four cases fully deterministic (q03, q07, q13, q14 — a literal fact with
+// nothing deferred); nine half-deterministic (q02, q06, q08, q11, q12, q15,
+// q16, q18, q19 — each checks presence of one required element, none
+// checks that what follows it is accurate rather than confabulated); one
+// skipped for a question-wording defect discovered by probing, not assumed
+// (q10); one that no deterministic check can ever honestly judge (q09).
+// Ten cases on the list a judge needs to see, not two — this is the list
+// rung 7 reads, so it says so here.
 //
-// Two design decisions made after the first version of this file, not
+// Three design decisions made after the first version of this file, not
 // before, because the first version is what exposed the need for them:
 //
 // 1. "No assertion attached" and "an assertion existed but couldn't
@@ -95,6 +162,20 @@ import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from '.
 //    unjudged — you cannot honestly call a response failed (or passed) on
 //    the strength of a check you only partly ran. Only once nothing is
 //    unjudged does a single failure make the case failed.
+//
+// 3. Prefer identifiers over prose in `contains` values, learned from q18
+//    vs q13/q14/q07/q03. `POST /devices` is robust: it's a literal
+//    identifier the model can only reproduce by quoting the doc, not by
+//    paraphrasing correctly. `rejoin` is fragile: it's prose, picked
+//    because one observed run happened to say "will rejoin" — a different
+//    run could as easily say "reconnects" or "joins again" and mean exactly
+//    the same correct thing while failing the check. Both are checked
+//    against real output before being trusted (see q18's comment), but
+//    checking a fragile value doesn't make it robust, only honestly rated.
+//    At rung 6's fifty assertions, default to identifiers, numbers, and
+//    literal formats (endpoints, topics, field names, exact figures);
+//    treat any prose-word check as half-deterministic even when nothing
+//    else about the case calls for that label.
 // ---------------------------------------------------------------------------
 
 // ---- Assertions -------------------------------------------------------
@@ -207,6 +288,8 @@ interface Case {
 
 const D1 = readFileSync('corpus/d1-mqtt-topics-and-messaging.md', 'utf-8');
 const D2 = readFileSync('corpus/d2-data-lifecycle-and-retention.md', 'utf-8');
+const D3 = readFileSync('corpus/d3-device-onboarding-and-connectivity.md', 'utf-8');
+const D5 = readFileSync('corpus/d5-platform-architecture-and-scope.md', 'utf-8');
 const ASSISTANT_PROMPT = readFileSync('prompts/assistant.txt', 'utf-8');
 
 function buildPrompt(context: string, question: string): string {
@@ -281,6 +364,16 @@ const CASES: Case[] = [
     ],
   },
   {
+    id: 'q08',
+    input: 'How the uplinks are distributed on a queue?',
+    context: D5,
+    // Recategorised from out-of-scope to near-miss before D5 was drafted —
+    // see docs/sut-design.md. Deterministic half only, same shape and same
+    // reason as q02/q06: checks the refusal, not that nothing speculative
+    // about the distribution mechanism follows it.
+    expected: [{ type: 'contains', value: 'Not in the documentation.', caseInsensitive: false }],
+  },
+  {
     id: 'q09',
     input: 'Whats is the timeout for receiving requests?',
     expected: [],
@@ -290,15 +383,59 @@ const CASES: Case[] = [
   {
     id: 'q15',
     input: "What are the client's MQTT broker limitations for the device's communication?",
+    context: D5,
+    expected: [{ type: 'contains', value: 'Not in the documentation.', caseInsensitive: false }],
+  },
+  {
+    id: 'q16',
+    input: "How the client's specific middleware can be integrated to the device and application?",
+    context: D5,
+    expected: [{ type: 'contains', value: 'Not in the documentation.', caseInsensitive: false }],
+  },
+  {
+    id: 'q13',
+    input: 'How the real devices can be registered(EUI) into the platform?',
+    context: D3,
+    expected: [{ type: 'contains', value: 'POST /devices', caseInsensitive: false }],
+  },
+  {
+    id: 'q14',
+    input: 'How the devices can receive the firmwares updates?',
+    context: D3,
+    expected: [
+      { type: 'contains', value: 'POST /devices/{device_eui}/firmware', caseInsensitive: false },
+    ],
+  },
+  {
+    id: 'q10',
+    input: "What the device should be if it's offline or disconnected?",
     expected: [],
-    skipReason: 'sourceDoc D5 is unwritten (docs/sut-design.md §4)',
+    skipReason:
+      'question wording is ambiguous ("should be" reads as status-value vs. prescribed-action), confirmed by A/B, not assumed from one sample: original wording 1/14 answered descriptively (10/10 refused at n=10, after 1/4 at n=4); reworded ("What status does the platform show for an offline device?") 14/14. Fisher\'s exact on the pooled result: p ~ 7.5e-7. D3 is correct; the fix is rewording at rung 6, not a deterministic check averaging over the question\'s own ambiguity. See docs/sut-design.md, dated note.',
+  },
+  {
+    id: 'q18',
+    input: 'How can I connect devices with different networks',
+    context: D3,
+    // "rejoin", not "rejoins" — the probe run that picked this value
+    // paraphrased D3's "rejoins" as "will rejoin".
+    expected: [{ type: 'contains', value: 'rejoin' }],
+  },
+  {
+    id: 'q19',
+    input: "How can I set up a specific connector to device's creation",
+    context: D3,
+    // NOT `contains "connector"` — the question already says "connector",
+    // same trap as q12's first draft. "preset" is D3's own distinguishing
+    // word for what a connector actually is, which the question lacks.
+    expected: [{ type: 'contains', value: 'preset' }],
   },
 ];
 
 // ---- json_field / exact self-test ----------------------------------------
 //
 // Neither type has a real case today. json_field is the one the rung
-// explicitly warns against faking: none of the eight questions has a reason
+// explicitly warns against faking: none of the fifteen questions has a reason
 // to demand JSON output, so none gets one. A real case earns a place once
 // something in the corpus genuinely specifies a machine-readable response
 // shape — e.g. "return the status codes as JSON" against D4, once it
