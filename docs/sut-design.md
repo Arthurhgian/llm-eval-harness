@@ -1,6 +1,7 @@
 # SUT design — the Qualimetrics corpus
 
-10 Sep 2026, day 1.
+10 Sep 2026, day 1. Corrected and consolidated 11 Sep 2026, day 2, once D1
+existed to correct against.
 
 Design notes for the golden-set corpus this harness runs against, written
 before the documents themselves. The point of writing this first: which
@@ -9,9 +10,9 @@ after the docs exist, it gets made by accident.
 
 ## 1. The platform
 
-**Qualimetrics** — an IoT platform that ingests device telemetry over MQTT,
-decodes it against per-device payload parsers, and exposes the result
-through topics, a REST API, and dashboards.
+**Qualimetrics** — an IoT platform for LoRaWAN devices. Telemetry reaches
+the platform over the network and is exposed to customers through MQTT
+topics, a REST API, and dashboards.
 
 Everything below references it by name. It goes first because nothing else
 parses without it.
@@ -61,7 +62,16 @@ implication. Two places this almost happened:
   §3 states the topic exists and what it carries, and stops there; the
   condition under which decoding does or doesn't happen is left unstated on
   purpose. Whoever drafts D1 from this section needs to keep it that way, not
-  fill the gap back in because it reads more complete.
+  fill the gap back in because it reads more complete. D1 as written names
+  the dependency ("the payload decoder assigned to the device's profile")
+  without the conditional — closer to the line than intended, so this got
+  checked rather than assumed, **11 Sep 2026**, with `scripts/probe-q2.ts`
+  (reproducible — re-run it for n>1): `claude-haiku-4-5-20251001` answered
+  "Not in the documentation," named the exact gap (covers no-payload, not
+  no-decoded-value), and asked a clarifying question instead of guessing a
+  cause. Holds as a near-miss under the rule in `docs/labelling-rules.md`
+  (refusal first, clarifying question after, passes) — n=1 so far, same
+  flake-budget caveat as everywhere else in this repo.
 - D2 hasn't been written yet, but the natural sentence for a data-lifecycle
   doc is "telemetry is append-only" or "immutable once ingested" — which
   answers Q6 (can't edit; only delete) by implication, the same way. D2's
@@ -72,35 +82,32 @@ implication. Two places this almost happened:
 
 ## 3. Topic scheme
 
-Settled before any document is written, because the scheme is the schema
-every document references — change it after three docs exist and all three
-need rewriting.
+Names only — shape, payloads, and examples live in D1 now that it's
+written, not here. As of 11 Sep 2026 this section is a name index, kept for
+the other design sections (below) and future D2/D5 drafting to point at
+before those documents exist; once every document referencing these names
+is written, this section can go, and the names live in the docs instead.
 
-**Uplink** (device → platform):
-- `qualimetrics/{device_eui}/up/{port}` — raw payload, base64, published as received.
-- `qualimetrics/{device_eui}/up/{port}/decoded` — JSON output of the configured
-  payload decoder, published after the raw message.
+**Uplink:** `qualimetrics/{device_eui}/up/{port}`, `.../up/{port}/decoded`
+**Downlink:** `qualimetrics/{device_eui}/down/{port}`, `.../down/{port}/ack`
+**Connection:** `qualimetrics/{device_eui}/status`
 
-**Downlink** (platform → device):
-- `qualimetrics/{device_eui}/down/{port}` — publish here to queue a downlink for
-  the device's next receive window.
-- `qualimetrics/{device_eui}/down/{port}/ack` — platform publishes here once the
-  network confirms delivery (confirmed downlinks only).
-
-**Connection lifecycle:**
-- `qualimetrics/{device_eui}/status` — retained; platform publishes
-  `online`/`offline` as connection state changes, and this is where an MQTT
-  Last-Will message is configured for ungraceful disconnects.
+Full shape: D1.
 
 ## 4. The five documents
 
-| Doc | Title | Scope |
-|---|---|---|
-| D1 | MQTT Topics & Messaging | Uplink/downlink topic format, payload decoding, connection status, acknowledgment. Uplink troubleshooting ("no payload") lives here — decoded-value troubleshooting deliberately does not. |
-| D2 | Data Lifecycle & Retention | Retention windows, removing received data, storage/partition limits. Editing/overwriting received data deliberately does not appear. |
-| D3 | Device Onboarding & Connectivity | EUI registration, firmware updates, connectors, multi-network support, offline/status detection. |
-| D4 | API Reference | Endpoints, status codes, the several distinct timeout concepts (join, downlink ack, HTTP), data export. |
-| D5 | Platform Architecture & Scope | High-level internal architecture and an explicit statement of what Qualimetrics does not cover (customer-owned infrastructure). |
+The `Doc` id (D1–D5) is what `sourceDoc` will carry on every case from
+rung 4 onward — it has to resolve to exactly one file, permanently. Filename
+is picked at the same time the document is written, not after, so there's
+never a window where the id is data pointing at nothing:
+
+| Doc | Title | File | Scope |
+|---|---|---|---|
+| D1 | MQTT Topics & Messaging | `corpus/d1-mqtt-topics-and-messaging.md` | Uplink/downlink topic format, payload decoding, connection status, acknowledgment. Uplink troubleshooting ("no payload") lives here — decoded-value troubleshooting deliberately does not. |
+| D2 | Data Lifecycle & Retention | *unwritten* | Retention windows, removing received data, storage/partition limits. Editing/overwriting received data deliberately does not appear. |
+| D3 | Device Onboarding & Connectivity | *unwritten* | EUI registration, firmware updates, connectors, multi-network support, offline/status detection. |
+| D4 | API Reference | *unwritten* | Endpoints, status codes, the several distinct timeout concepts (join, downlink ack, HTTP), data export. |
+| D5 | Platform Architecture & Scope | *unwritten* | High-level internal architecture and an explicit statement of what Qualimetrics does not cover (customer-owned infrastructure). |
 
 ## 5. The 20 questions
 
@@ -115,7 +122,7 @@ there:
 | 1 | Why is my uplink arriving with no payload? | Answerable ★ | D1 | Full answer, in the uplink troubleshooting section |
 | 2 | Why is my uplink arriving with no decoded payload value? | Near-miss ★ (undocumented sibling of Q1) | D1 | Sibling only — the decoding-pipeline description, not this failure mode |
 | 3 | What's the topic format for downlink? | Answerable | D1 | Full answer — downlink topic format |
-| 4 | What's the message left when the connect is disconnected? | Underspecified — "message" and "connect" both need pinning down: the retained status message, the Last-Will payload, or something else | D1 | Describes several candidate concepts, none matching the question as asked |
+| 4 | What's the message left when the connect is disconnected? | Answerable (recategorised — see note below) | D1 | Full answer — the Last-Will section: `{"status": "offline", "reason": "lwt"}`, distinguished from a graceful disconnect by `reason` |
 | 5 | How do I tell if the device acknowledged? | Answerable | D1 | Full answer — the ack topic |
 | 6 | How can the data received be edited/overwritten? | Near-miss ★ (undocumented sibling of Q7) | D2 | Sibling only — removal mechanics, nothing on editing (see note above) |
 | 7 | How can the data can be removed? | Answerable ★ | D2 | Full answer — removal mechanics |
@@ -133,11 +140,24 @@ there:
 | 19 | How can I set up a specific connector to device's creation | Answerable | D3 | Full answer — connector setup during device creation |
 | 20 | How can the data received be manipulated via API to be used as data sheets and customizable analysis? | Underspecified — "data sheets" and "customizable analysis" aren't platform terms; needs a concrete export format or destination | D4 | Query/export endpoints described; not mapped to either named term |
 
-**Distribution:** 9 answerable, 2 near-miss, 3 out-of-scope, 3 depends-on-reader,
-3 underspecified. Answerable is the largest bucket here; the design effort
-went into making sure the other eleven each detect a specific, named failure
+**Distribution:** 10 answerable, 2 near-miss, 3 out-of-scope, 3 depends-on-reader,
+2 underspecified. Answerable is the largest bucket here; the design effort
+went into making sure the other ten each detect a specific, named failure
 mode instead of padding the count. (Not claiming this split matches real
 corpora — haven't checked one.)
+
+**11 Sep 2026 — Q4 was recategorised after D1 was drafted, not before.** The design called
+for D1 to leave "message... disconnected" ambiguous between the retained
+status message and the Last-Will payload. Writing D1 for real needed a
+concrete Last-Will section to be a useful product page — a customer
+integrating against this needs to know the LWT payload actually is — and
+that section ended up naming the exact answer, `reason` field included. The
+question stopped being underspecified the moment the document got specific,
+and the alternative (deleting the LWT detail to preserve the label) would
+have made D1 worse to keep Q4's category intact. Category lost, document
+kept — that was the right trade. This is the drift the single-source-of-truth
+rule in `method.md` exists to catch: this file is now the corrected record,
+not the original design intent.
 
 These 20 are a seed, not the golden set. Rung 6 grows this to 50 — more
 per-category coverage, and likely more near-miss pairs once D1–D5 exist and
