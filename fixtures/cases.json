@@ -132,5 +132,31 @@
     "expected": [
       { "type": "contains", "value": "preset" }
     ]
+  },
+  {
+    "id": "q17",
+    "category": "Answerable",
+    "sourceDoc": "D4",
+    "input": "What are the main status code received by the API when fetching data(positive and negatives)?",
+    "expected": [
+      { "type": "contains", "value": "429" }
+    ]
+  },
+  {
+    "id": "q20",
+    "category": "Underspecified",
+    "sourceDoc": "D4",
+    "input": "How can the data received be manipulated via API to be used as data sheets and customizable analysis?",
+    "expected": [],
+    "skipReason": "no deterministic check exists for \"asked what 'data sheets' or 'customizable analysis' is supposed to mean\" — same undecidable-by-category shape as q09, not a missing-corpus problem; D4 documents a JSON query endpoint but neither term maps onto it"
+  },
+  {
+    "id": "q21",
+    "category": "Answerable",
+    "sourceDoc": "D4",
+    "input": "What does the API return if you request data for a device EUI that isn't registered?",
+    "expected": [
+      { "type": "json_field", "field": "error" }
+    ]
   }
 ]

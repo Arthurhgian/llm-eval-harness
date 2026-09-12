@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { client, MODEL_ID, INPUT_PRICE_PER_MTOK, OUTPUT_PRICE_PER_MTOK } from './lib/model';
-import { loadDoc, docExists, DocNotWrittenError } from './lib/docs';
+import { loadDoc, docExists } from './lib/docs';
 import { loadCases, resolveContext, type AssertionData, type CaseData } from './lib/cases';
 
 // Case-by-case reasoning, the three design decisions behind this file's
@@ -109,16 +109,18 @@ const CASES: CaseData[] = loadCases();
 
 // ---- json_field / exact self-test ----------------------------------------
 //
-// Neither type has a real case today. json_field is the one the rung
-// explicitly warns against faking: none of today's questions has a reason
-// to demand JSON output, so none gets one. A real case earns a place once
-// something in the corpus genuinely specifies a machine-readable response
-// shape — e.g. "return the status codes as JSON" against D4, once it
-// exists. `exact` turns out to have the same gap for a quieter reason: the
-// one place it looked like a fit (q02's refusal) doesn't stay exact once
-// the model adds the gap explanation and a follow-up question, which is
-// exactly why q02 uses `contains` instead. Both are proven correct here,
-// directly, instead of bent to fit a case that doesn't want them.
+// json_field now has a real case (q21, added once D4 existed): D4's error
+// envelope is a verbatim JSON body, so asking what the API returns for an
+// unknown device EUI has a genuine machine-readable shape to check against
+// — not faked to give the type coverage. Whether a response that wraps
+// that JSON in prose counts as `failed` or `unjudged` is decided in
+// docs/labelling-rules.md, not here; this file's behaviour (any JSON.parse
+// failure is `unjudged`) already matches that decision. `exact` still has
+// no real case, for a quieter reason: the one place it looked like a fit
+// (q02's refusal) doesn't stay exact once the model adds the gap
+// explanation and a follow-up question, which is exactly why q02 uses
+// `contains` instead. Both types are proven correct here, directly,
+// instead of bent to fit a case that doesn't want them.
 function selfTest() {
   const exactPass = runAssertion('Not in the documentation.', { type: 'exact', value: 'Not in the documentation.' });
   const exactFail = runAssertion('Not in the documentation, sadly.', {
@@ -183,26 +185,23 @@ function selfTest() {
     q12StyleOnGenericNonAnswer.verdict === 'failed' ? 'OK' : 'BROKEN',
   );
 
-  // Doc registry: D1 loads (proves the map resolves a real id to real
-  // content), D4 throws the named error, not a generic one (proves the
-  // "no file yet" state is a decision, not whatever Node happens to throw),
-  // and docExists() agrees with loadDoc() rather than being a second,
-  // driftable source of truth for the same fact.
+  // Doc registry: D1 and D4 both load (proves the map resolves a real id
+  // to real content for the oldest and newest document alike), and
+  // docExists() agrees with loadDoc() for both rather than being a second,
+  // driftable source of truth for the same fact. D4 used to be the case
+  // that proved DocNotWrittenError fires instead of a bare Node
+  // ENOENT — that check is gone as of 12 Sep 2026, not weakened: D4 is
+  // written, so there is no longer a doc in ALL_DOC_IDS this repo could
+  // use to exercise "not written yet" without inventing a fake id the type
+  // doesn't have. DocNotWrittenError stays in src/lib/docs.ts for the next
+  // doc that arrives the same way D4 did; it has nothing left to be tested
+  // against here until then.
   const d1Loaded = loadDoc('D1').length > 0;
-  let d4ThrewNamedError = false;
-  try {
-    loadDoc('D4');
-  } catch (err) {
-    d4ThrewNamedError = err instanceof DocNotWrittenError;
-  }
-  const docExistsAgreesWithLoadDoc = docExists('D1') === true && docExists('D4') === false;
+  const d4Loaded = loadDoc('D4').length > 0;
+  const docExistsAgreesWithLoadDoc = docExists('D1') === true && docExists('D4') === true;
 
   console.log('D1 loads via the registry  ->', d1Loaded ? 'pass' : 'fail', d1Loaded ? 'OK' : 'BROKEN');
-  console.log(
-    'D4 throws DocNotWrittenError ->',
-    d4ThrewNamedError ? 'pass' : 'fail',
-    d4ThrewNamedError ? 'OK' : 'BROKEN',
-  );
+  console.log('D4 loads via the registry  ->', d4Loaded ? 'pass' : 'fail', d4Loaded ? 'OK' : 'BROKEN');
   console.log(
     'docExists agrees with loadDoc ->',
     docExistsAgreesWithLoadDoc ? 'pass' : 'fail',

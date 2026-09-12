@@ -56,13 +56,16 @@ purpose:
 Leaving a question out only works if nothing else in the corpus answers it by
 implication. Two places this almost happened:
 
-- The topic scheme below describes the `/decoded` topic. The natural sentence
-  to write is "published when a decoder exists for the device's profile" —
-  which *is* the answer to Q2 (no decoded value ⇒ no decoder configured).
-  §3 states the topic exists and what it carries, and stops there; the
-  condition under which decoding does or doesn't happen is left unstated on
-  purpose. Whoever drafts D1 from this section needs to keep it that way, not
-  fill the gap back in because it reads more complete. D1 as written names
+- This design's original topic-scheme section (a name index, since folded
+  into D1 and removed once every document referencing it existed — see the
+  12 Sep 2026 note under §3) described the `/decoded` topic. The natural
+  sentence to write is "published when a decoder exists for the device's
+  profile" — which *is* the answer to Q2 (no decoded value ⇒ no decoder
+  configured). That section stated the topic exists and what it carries,
+  and stopped there; the condition under which decoding does or doesn't
+  happen was left unstated on purpose. Whoever drafted D1 from it needed to
+  keep it that way, not fill the gap back in because it reads more
+  complete. D1 as written names
   the dependency ("the payload decoder assigned to the device's profile")
   without the conditional — closer to the line than intended, so this got
   checked rather than assumed, **11 Sep 2026**, with `scripts/probe-q2.ts`
@@ -87,22 +90,18 @@ implication. Two places this almost happened:
   being usable and a replacement near-miss has to be found — don't let it
   happen silently.
 
-## 3. Topic scheme
+## 3. The five documents
 
-Names only — shape, payloads, and examples live in D1 now that it's
-written, not here. As of 11 Sep 2026 this section is a name index, kept for
-future D3/D4/D5 drafting to point at before those documents exist (D2
-already points at D1 by title rather than repeating this); once every
-document referencing these names is written, this section can go, and the
-names live in the docs instead.
-
-**Uplink:** `qualimetrics/{device_eui}/up/{port}`, `.../up/{port}/decoded`
-**Downlink:** `qualimetrics/{device_eui}/down/{port}`, `.../down/{port}/ack`
-**Connection:** `qualimetrics/{device_eui}/status`
-
-Full shape: D1.
-
-## 4. The five documents
+**12 Sep 2026 — this section used to be preceded by a "Topic scheme"
+section**, a name index for the MQTT topics (`.../up/{port}`,
+`.../down/{port}`, `.../status`, and their variants), kept only so
+D2/D3/D4/D5 drafting had something to point at before D1 existed to name
+them properly. It said, when it existed, that it could go "once every
+document referencing these names is written" — D2 has pointed at D1 by
+title since D2 was drafted, and D4 (below) does the same rather than
+repeating any topic name D1 already owns. With D4 written, that condition
+is met for all five documents, so the section is gone rather than kept
+as a name index nothing points at anymore.
 
 The `Doc` id (D1–D5) is what `sourceDoc` will carry on every case from
 rung 4 onward — it has to resolve to exactly one file, permanently. Filename
@@ -120,15 +119,25 @@ treatment already used for D2/D3/D5 before they existed — without also
 swallowing a genuinely broken path (a typo in the map, a moved file),
 which stays an uncaught crash because it's a bug, not a known gap.
 
+**12 Sep 2026 — D4 written, closing the gap this section flagged above.**
+`src/lib/docs.ts`'s map now has all five entries; `DocNotWrittenError`
+stays in the module for the next doc that arrives the same way D4 did, but
+nothing in `ALL_DOC_IDS` can trigger it today. D4's own scope stayed
+narrower than "endpoints" might suggest, on purpose, to protect other
+cases already in the golden set — see the exclusions noted per-question in
+§4 below (q06, q07, q09, q11, q12, q13, q14, q20) and, in full, the
+per-document design note that shipped with D4 in
+`docs/case-design.md`.
+
 | Doc | Title | File | Scope |
 |---|---|---|---|
 | D1 | MQTT Topics & Messaging | `corpus/d1-mqtt-topics-and-messaging.md` | Uplink/downlink topic format, payload decoding, connection status, acknowledgment. Uplink troubleshooting ("no payload") lives here — decoded-value troubleshooting deliberately does not. |
 | D2 | Data Lifecycle & Retention | `corpus/d2-data-lifecycle-and-retention.md` | Retention windows and register/bucket capacity limits (both plan-tier tables, no universal number), removing received data. Editing/overwriting received data deliberately does not appear. |
 | D3 | Device Onboarding & Connectivity | `corpus/d3-device-onboarding-and-connectivity.md` | EUI registration, firmware updates, connectors, multi-network support, offline/status detection (branches on per-device reporting interval, not plan). |
-| D4 | API Reference | *unwritten* | Endpoints, status codes, the several distinct timeout concepts (join, downlink ack, HTTP), data export. |
+| D4 | API Reference | `corpus/d4-api-reference.md` | Querying stored telemetry over HTTP, status codes (including 429), three distinctly-named timeout concepts (join-accept window, downlink acknowledgment window, API call timeout — none of them called "request timeout"). Explicitly not a complete endpoint index; registration, firmware, and data removal are left to D3/D2 by title. No PATCH/PUT on data, no export format, no plan-agnostic numbers. |
 | D5 | Platform Architecture & Scope | `corpus/d5-platform-architecture-and-scope.md` | The ingestion pipeline at a high level (queue, validate, decode, store, publish — no distribution detail), and an explicit statement of what Qualimetrics does not cover (customer-owned infrastructure). |
 
-## 5. The 20 questions
+## 4. The 20 questions
 
 ★ marks the two near-miss pairs — same mark, one documented half, one not.
 Q8 is a third near-miss, unpaired — no sibling question in this set asks
@@ -159,7 +168,7 @@ there:
 | 17 | What are the main status code received by the API when fetching data(positive and negatives)? | Answerable | D4 | Full answer — status code table |
 | 18 | How can I connect devices with different networks | Answerable | D3 | Full answer — the `network` field, distinct mechanism from Q19 (see note below) |
 | 19 | How can I set up a specific connector to device's creation | Answerable | D3 | Full answer — connectors as decoder/settings presets, distinct mechanism from Q18 (see note below) |
-| 20 | How can the data received be manipulated via API to be used as data sheets and customizable analysis? | Underspecified — "data sheets" and "customizable analysis" aren't platform terms; needs a concrete export format or destination | D4 | Query/export endpoints described; not mapped to either named term |
+| 20 | How can the data received be manipulated via API to be used as data sheets and customizable analysis? | Underspecified — "data sheets" and "customizable analysis" aren't platform terms; needs a concrete export format or destination | D4 | A JSON query endpoint is described; no export format or destination exists to map either term onto (see 12 Sep 2026 note below) |
 
 **Distribution:** 10 answerable, 3 near-miss, 2 out-of-scope, 3 depends-on-reader,
 2 underspecified. Answerable is the largest bucket here; the design effort
@@ -276,6 +285,55 @@ agreement number it reports. Keep this data point rather than let it
 evaporate into "skipped": it's the first real evidence this repo has for
 what repeat-N actually looks like, and it should feed rung 5's design
 directly instead of being rediscovered there.
+
+**12 Sep 2026 — D4 decided eight exclusions before being drafted, not
+after, because each one protects a case that already exists.** D4's brief
+(§3) reads "endpoints, status codes, timeouts, data export" — wide enough
+to answer several other cases by accident if drafted carelessly. Decided
+and held to, one exclusion per clause: (1) no PATCH/PUT on data — protects
+Q6, since a mutation endpoint answers "can it be edited" outright; (2) no
+"these are all the data operations" framing or complete endpoint index —
+protects Q6 by omission, since a complete table with no PATCH in it is
+itself the answer; (3) no CSV/XLSX/`format=` export — protects Q20, since
+CSV is a data sheet and would collapse the question to answerable, and D3's
+"CSV upload" is devices, not data, so D4 doesn't bridge to it; (4) no
+conditional on decoder assignment — protects Q2; (5) no restated `DELETE
+.../data` mechanics — protects Q7's provenance, D4 points at D2 by title
+instead; (6) no restated `POST /devices` or firmware-upload mechanics —
+protects Q13/Q14's provenance the same way, pointing at D3 by title; (7) no
+plan-agnostic rate-limit number — protects Q11/Q12, so D4 has no rate-limit
+section at all rather than one flat number breaking the plan-conditioned
+discipline D2 established; (8) the phrase "request timeout" never appears
+as a name for any one concept — protects Q9, with three timeouts named by
+distinct qualifiers instead (join-accept window, downlink acknowledgment
+window, API call timeout), none of them colliding with D1's already-distinct
+"session timeout" (MQTT). This is the Q4 collapse (§4, dated note above) in
+reverse: there, specificity a document needed for its own sake cost a
+category by accident; here, the categories were checked against before the
+specificity was written, not after.
+
+Probed against the real document, not assumed, same day
+(`scripts/probe-q9.ts`, `scripts/probe-q17.ts`, `scripts/probe-q20.ts`):
+Q9 — first probe ever run against real D4 content (before today it only
+ever hit `skipped` on category grounds) — named all three timeouts,
+refused to pick one, and asked which was meant; holds as underspecified.
+Q17 answered with the full status-code table, "positive" and "negative"
+both represented, `429` present. Q20 refused, accurately described the
+query endpoint D4 does have, and asked what export or analysis capability
+was meant instead of treating the query endpoint as settling the question;
+holds as underspecified. n=1 each, same flake-budget caveat as every
+other probe in this repo.
+
+D4 also gave `json_field` its first real case: Q21 asks what the API
+returns for an unregistered device EUI, checked against D4's verbatim
+error envelope. Probed (`scripts/probe-q21.ts`): the model named the
+correct status code and reproduced the correct body, wrapped in an
+explanatory sentence — `JSON.parse` on the full response throws, so the
+case reports `unjudged`, not `failed`. That's the intended read, decided
+in `docs/labelling-rules.md` before this result came in, not fitted to it
+afterward: a structural check handed a correct answer in the wrong
+shape is a fact about the check's reach, not about whether the model was
+right.
 
 **Forward note for rung 6:** Q11 and Q12 are both plan-conditioned — same
 mechanism (which tier the account is on), tested twice. Growing to 50 should

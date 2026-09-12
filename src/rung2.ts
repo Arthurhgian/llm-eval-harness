@@ -13,7 +13,7 @@ const CASES: Case[] = [
   {
     id: 'q03',
     input: "What's the topic format for downlink?",
-    expected: 'qualimetrics/{device_eui}/down/{port} — docs/sut-design.md §3',
+    expected: 'qualimetrics/{device_eui}/down/{port} — corpus/d1-mqtt-topics-and-messaging.md',
   },
   {
     id: 'q02',

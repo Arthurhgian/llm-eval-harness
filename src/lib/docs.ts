@@ -1,10 +1,12 @@
 import { readFileSync } from 'fs';
 
-// Every id docs/sut-design.md §4 has named, written or not — D4 is a real,
-// planned document, not a typo, so it stays in the type even though it has
-// no file yet. A case can legally reference D4 today; the map just won't
-// have it. Keeping "nameable" (the type) and "written" (the map) as two
-// different facts is the whole design here.
+// Every id docs/sut-design.md §3 has named. All five now resolve to a real
+// file (D4 was the last, written 12 Sep 2026) — "nameable" (this type) and
+// "written" (the map below) used to be two different facts while D4 sat in
+// the type with no entry in the map; they've now converged, but the type
+// stays independent of the map's contents rather than being derived from
+// its keys, so a future doc can still be named here before its file exists,
+// the same way D4 was.
 export type DocId = 'D1' | 'D2' | 'D3' | 'D4' | 'D5';
 
 // The type above is compile-time only, erased at runtime — no help
@@ -14,31 +16,32 @@ export type DocId = 'D1' | 'D2' | 'D3' | 'D4' | 'D5';
 // maintained lists could.
 export const ALL_DOC_IDS: readonly DocId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
-// Exactly the docs that exist today. D4 is deliberately absent as a key,
-// not present with a null or empty value — absence from a Map is a real,
-// checkable "not found", and it's what changes, to a present entry, the
-// day D4 is written. Nothing else about this module needs to change then.
+// Exactly the docs that exist today — currently all five. A doc named in
+// the type above but not yet written stays absent as a key here, not
+// present with a null or empty value, the way D4 was until 12 Sep 2026:
+// absence from a Map is a real, checkable "not found".
 const DOC_PATHS = new Map<DocId, string>([
   ['D1', 'corpus/d1-mqtt-topics-and-messaging.md'],
   ['D2', 'corpus/d2-data-lifecycle-and-retention.md'],
   ['D3', 'corpus/d3-device-onboarding-and-connectivity.md'],
+  ['D4', 'corpus/d4-api-reference.md'],
   ['D5', 'corpus/d5-platform-architecture-and-scope.md'],
 ]);
 
 const cache = new Map<DocId, string>();
 
-// Thrown for a DocId with no file behind it yet (D4, today — decided now,
-// before any case actually names it, since that state arrives the moment
-// someone writes `sourceDoc: 'D4'` into a case and forgets D4 isn't
-// written). Deliberately a distinct, named error: a thrown Node ENOENT
-// from a registered-but-wrong path (a typo in DOC_PATHS, a moved or
-// deleted file) is a different problem — a real bug in this module, not a
-// known gap — and must not be caught by the same handler as "not written
-// yet". Callers that mean to treat "not written" as `skipped` should catch
-// DocNotWrittenError specifically, not Error.
+// Thrown for a DocId with no file behind it yet. Unreachable for all five
+// current ids now that D4 is written (12 Sep 2026) — kept, not deleted,
+// for the next doc named in the type before its file exists, the same
+// state D4 was in from 11 Sep to 12 Sep. Deliberately a distinct, named
+// error: a thrown Node ENOENT from a registered-but-wrong path (a typo in
+// DOC_PATHS, a moved or deleted file) is a different problem — a real bug
+// in this module, not a known gap — and must not be caught by the same
+// handler as "not written yet". Callers that mean to treat "not written"
+// as `skipped` should catch DocNotWrittenError specifically, not Error.
 export class DocNotWrittenError extends Error {
   constructor(public readonly id: DocId) {
-    super(`${id} has no file yet — see docs/sut-design.md §4.`);
+    super(`${id} has no file yet — see docs/sut-design.md §3.`);
     this.name = 'DocNotWrittenError';
   }
 }

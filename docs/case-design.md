@@ -10,7 +10,8 @@ comments; only the container changed, from `//` to prose.
 
 Walking the cases before writing assertions for them (five from rung2,
 q07/q12/q06 added once D2 existed, q08/q16 added and q15 unblocked once D5
-existed, q13/q14/q18/q19 added and q10 skipped once D3 existed):
+existed, q13/q14/q18/q19 added and q10 skipped once D3 existed, q17/q20
+added and q21 introduced once D4 existed):
 
 **q03 (answerable)** — deterministic. D1 states the downlink topic format
 as literal text; a `contains` check on that literal string is a real
@@ -115,14 +116,44 @@ distinction was drawn correctly.
 `contains "connector"`, which the question already contains and could
 never fail on, the same trap q12's first draft fell into.
 
+**q17 (answerable)** — half deterministic, added once D4 existed. `contains
+"429"` confirms the response surfaced at least one of the "negative"
+status codes the question asks for by name — a literal code the question's
+own "positive and negatives" wording doesn't supply. It doesn't confirm
+the full table came back, or that a 2xx code was named for the "positive"
+half; both are deferred, same shape as q11/q12's deferred correctness.
+`429` was chosen over a prose word (`"Too Many Requests"` or similar) for
+the reason case-design decision 3 already gives: an identifier the model
+can only reproduce by quoting the table, not by paraphrasing.
+
+**q20 (underspecified)** — undecidable by category, not by missing corpus,
+same shape as q09: the correct behaviour is a clarifying question about
+what "data sheets" or "customizable analysis" is supposed to mean, and
+nothing requires a specific form for one. D4 documents a JSON query
+endpoint that answers a *different*, better-specified version of this
+question; neither of the question's own terms maps onto it, which is what
+keeps this underspecified rather than answerable. No honest substring
+exists for "asked about the right ambiguity," same as q09.
+
+**q21 (answerable)** — json_field's first real case, added once D4 existed
+to give the type a target that isn't faked (see the header comment in
+`src/rung3.ts`). Half deterministic: `{ type: 'json_field', field: 'error'
+}` confirms the response is valid, standalone JSON with an `error` key —
+the shape D4's error envelope actually has for an unregistered EUI. It
+does not confirm the nested `code`/`message` values are correct, only
+that the top-level shape is right; that's deferred, same as every other
+half-deterministic case here. Whether a response that wraps the JSON in
+prose is `failed` or `unjudged` is a separate decision, in
+`docs/labelling-rules.md`, not repeated here.
+
 Four cases fully deterministic (q03, q07, q13, q14 — a literal fact with
-nothing deferred); nine half-deterministic (q02, q06, q08, q11, q12, q15,
-q16, q18, q19 — each checks presence of one required element, none checks
-that what follows it is accurate rather than confabulated); one skipped
-for a question-wording defect discovered by probing, not assumed (q10);
-one that no deterministic check can ever honestly judge (q09). Ten cases
-on the list a judge needs to see, not two — this is the list rung 7 reads,
-so it says so here.
+nothing deferred); eleven half-deterministic (q02, q06, q08, q11, q12,
+q15, q16, q18, q19, q17, q21 — each checks presence of one required
+element, none checks that what follows it is accurate rather than
+confabulated); one skipped for a question-wording defect discovered by
+probing, not assumed (q10); two that no deterministic check can ever
+honestly judge (q09, q20). Thirteen cases on the list a judge needs to
+see, not two — this is the list rung 7 reads, so it says so here.
 
 ## Design decisions
 
@@ -226,6 +257,27 @@ paraphrased D3's "rejoins" as "will rejoin".
 "connector", same trap as q12's first draft. "preset" is D3's own
 distinguishing word for what a connector actually is, which the question
 lacks.
+
+**q17** — `contains "429"`, not a status-code name — the question's own
+"positive and negatives" wording never contains a number, so a real code
+from D4's table has to be quoted. Chosen over `"200"` specifically because
+a response could describe only success codes and still sound complete; a
+"negative" code appearing is the harder half of "positive and negatives"
+to get right by accident.
+
+**q20** — `expected: []`, same as q09 — see the explain-back above.
+`skipReason` names the two undefined terms directly ("data sheets",
+"customizable analysis") rather than a generic "underspecified," so a
+future reader doesn't have to re-derive which words are the problem from
+the question text alone.
+
+**q21** — `{ type: 'json_field', field: 'error' }`. Not `contains
+"device_not_found"` — a `contains` check here would pass on the code
+appearing anywhere in prose, which is exactly the format the response
+should NOT get credit for under the rule in `docs/labelling-rules.md`
+("json_field: does prose wrapping the JSON count as a response?"); using
+`json_field` instead makes "the whole response is valid JSON" part of
+what's being checked, not incidental to it.
 
 ## Why a percentage over these cases should never be reported
 
