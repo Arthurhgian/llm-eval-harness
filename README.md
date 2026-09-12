@@ -34,7 +34,6 @@ Cost and p95 latency are quality gates alongside correctness.
 cp .env.example .env      # add one provider key
 npm install
 npx promptfoo eval        # matrix + judged assertions
-uv sync && uv run pytest  # build-failing gates
 ```
 
 ## Status
