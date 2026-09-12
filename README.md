@@ -39,7 +39,8 @@ uv sync && uv run pytest  # build-failing gates
 
 ## Status
 
-Week 1 of a 92-day build. Nothing here is finished; the commit history is
-the point.
+Frozen at v0.1-corpus-complete. Days 1–3 were built with heavy AI assistance.
+Kept as a study reference; work I author myself continues in the Playwright
+repo.
 
 MIT licensed.
